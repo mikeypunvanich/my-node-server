@@ -1,14 +1,13 @@
 // src/routes/users.js
 const express = require('express');
 const router = express.Router();
-const supabase = require('../db/db');
+const db = require('../db/db');
 
 // GET all users
 router.get('/', async (req, res) => {
     try {
-        const { data, error } = await supabase.from('users').select('*');
-        if (error) throw error;
-        res.json(data);
+        const result = await db.query('SELECT * FROM users');
+        res.json(result.rows);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -18,11 +17,11 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
     const { name, email } = req.body;
     try {
-        const { data, error } = await supabase
-            .from('users')
-            .insert([{ name, email }]);
-        if (error) throw error;
-        res.json(data);
+        const result = await db.query(
+            'INSERT INTO users (name, email) VALUES ($1, $2) RETURNING *',
+            [name, email]
+        );
+        res.json(result.rows[0]);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -32,12 +31,11 @@ router.post('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        const { data, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', id);
-        if (error) throw error;
-        res.json(data[0]);
+        const result = await db.query(
+            'SELECT * FROM users WHERE id = $1',
+            [id]
+        );
+        res.json(result.rows[0]);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -47,11 +45,10 @@ router.get('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        const { data, error } = await supabase
-            .from('users')
-            .delete()
-            .eq('id', id);
-        if (error) throw error;
+        await db.query(
+            'DELETE FROM users WHERE id = $1',
+            [id]
+        );
         res.json({ message: 'User deleted' });
     } catch (error) {
         res.status(500).json({ error: error.message });
