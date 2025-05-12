@@ -1,32 +1,61 @@
+// src/routes/users.js
 const express = require('express');
 const router = express.Router();
-const db = require('../db/db');
+const supabase = require('../db/db');
 
 // GET all users
-router.get('/', (req, res) => {
-    db.query('SELECT * FROM users', (err, results) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-        } else {
-            res.json(results);
-        }
-    });
+router.get('/', async (req, res) => {
+    try {
+        const { data, error } = await supabase.from('users').select('*');
+        if (error) throw error;
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // CREATE new user
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
     const { name, email } = req.body;
-    db.query(
-        'INSERT INTO users (name, email) VALUES (?, ?)',
-        [name, email],
-        (err, result) => {
-            if (err) {
-                res.status(500).json({ error: err.message });
-            } else {
-                res.json({ message: 'User created', id: result.insertId });
-            }
-        }
-    );
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .insert([{ name, email }]);
+        if (error) throw error;
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// GET user by ID
+router.get('/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', id);
+        if (error) throw error;
+        res.json(data[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// DELETE user by ID
+router.delete('/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .delete()
+            .eq('id', id);
+        if (error) throw error;
+        res.json({ message: 'User deleted' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 module.exports = router;
